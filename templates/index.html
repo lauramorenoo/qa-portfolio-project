@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Items</title>
+</head>
+<body>
+    <h1>Items</h1>
+    <ul id="item-list">
+
+    </ul>
+
+    <form id="add-form">
+        <input type="text" id="item-name" placeholder="Item name">
+        <button type="submit" id="add-button">Add Item</button>
+    </form>
+
+    <script>
+        // fetch items from the API and display them in the list
+        
+        // sends a GET request to the API
+        fetch("/items")
+            // once the response arrives, convert it from raw response into usable JSON data
+            .then(response => response.json())
+            // once that conversion is done, data now holds the actual items list, and can do something with it
+            .then(data => {
+                // grabs <ul> element
+                const list = document.getElementById("item-list");
+                // loops through each item in the array
+                data.forEach(item => {
+                    // create a new, empty <li> element in memory
+                    const li = document.createElement("li");
+                    // sets the visible text of that <li> to the item's name
+                    li.textContent = item.name;
+                    // actually attaches that new <li> into the <ul> on the page
+                    list.appendChild(li);
+                });
+            });
+        // when the form is submitted, POST a new item to the API
+        
+        // grabs form element by its id     // runs code whenever the form is submitted
+        document.getElementById("add-form").addEventListener("submit", function(event) {
+            // stops the default page-reload behavior
+            event.preventDefault();
+
+            // reads whatever the user typed into the text box
+            const name = document.getElementById("item-name").value;
+
+            // same as fetch before but this time specifying its a POST, w headers and body
+            fetch("/items", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const li = document.createElement("li");
+                const list = document.getElementById("item-list");
+                li.textContent = data.name;
+                list.appendChild(li);
+            });
+        });
+    </script>
+</body>
+</html>
