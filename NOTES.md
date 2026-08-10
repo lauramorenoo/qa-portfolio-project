@@ -224,11 +224,71 @@ wait.until(EC.text_to_be_present_in_element((By.ID, "item-list"), "Bananas"))
 **Key lesson (general):** "in" vs "==" distinction applies here too — checking `"Bananas" in item_list.text`
 (does this text appear somewhere within the list) vs `==` (exact match) — same pattern from the API tests.
 
+## Week 5 — CI setup with GitHub Actions ✅ DONE
+- Initialized Git in `qa-portfolio-project`, connected to GitHub repo, pushed code
+- Added `requirements.txt` (via `pip freeze > requirements.txt`) so anyone (including GitHub's CI)
+  can install the exact same dependencies
+- Added `.github/workflows/tests.yml` — tests now run automatically on every `git push`
+- Repo: https://github.com/lauramorenoo/qa-portfolio-project
+
+**Big-picture pattern (useful for any future CI setup, any language):**
+Every CI workflow roughly follows the same shape: get the code → get the language/runtime →
+install dependencies → start anything the tests depend on (like a server) → run the tests.
+Once you recognize this shape, adapting it to a new project is mostly swapping details into
+the same skeleton.
+
+**Git basics:**
+- `git init` — turns a folder into a Git repo (starts tracking history locally)
+- `git add <file>` (or `git add .` for everything) — STAGES changes (marks them ready to save)
+- `git commit -m "message"` — actually saves a snapshot of staged changes, with a description
+- `git push` — uploads local commits to GitHub (first time needs `-u origin main` to link them;
+  after that, just `git push`)
+- `git status` — shows what's tracked/untracked/staged at any point — check this often
+
+**`.gitignore`** — tells Git to NEVER track certain files/folders, even though they exist locally:
+```
+venv/
+__pycache__/
+*.pyc
+```
+- `venv/` — machine-specific, huge, fully reproducible via `requirements.txt` — no reason to track
+- `__pycache__/`, `*.pyc` — Python auto-generated clutter, not real source code
+- The `.gitignore` FILE ITSELF is tracked/committed (it's the instruction list, not the thing being hidden)
+
+**`requirements.txt`** — a plain list of installed packages + versions (`pip freeze > requirements.txt`).
+Bridges the gap between "here's my code" and "here's what it needs installed to actually run" — needed
+because `venv/` (where packages actually live) is gitignored.
+
+**`.github/workflows/tests.yml`** — must live in that exact folder path. Key parts:
+- `on: [push]` — trigger: run this workflow every time code is pushed
+- `runs-on: ubuntu-latest` — GitHub gives you a fresh, blank Linux machine each run
+- `uses:` — run a pre-built action someone else wrote (e.g. `actions/checkout@v4` downloads your repo
+  onto the blank machine; `actions/setup-python@v5` installs Python)
+- `run:` — execute a raw shell command yourself, same as typing it in a terminal
+- `run: |` (with the pipe) — means multiple commands run in order, one per line
+
+**Bugs I hit and fixed:**
+- First CI run failed with `ConnectionError ... port=5000` — same root cause as always needing
+  Terminal 1 (server) + Terminal 2 (tests) locally, except GitHub's blank machine had NO server running
+  at all — the workflow only installed deps and ran pytest, never started Flask first
+- Fixed by adding a step to start the server in the BACKGROUND (`python3 app.py &`) plus `sleep 3` to
+  give it a moment to boot, before the pytest step — a normal (non-backgrounded) step would run forever
+  and the workflow would never reach the test step at all
+- Pasted the new step in the WRONG ORDER (after "Run pytest tests" instead of before) + left a
+  duplicate old step in the file → GitHub runs steps top-to-bottom exactly as written, no assumptions.
+  Fixed by rewriting the whole file cleanly with steps in the correct order, duplicate removed
+- YAML requires SPACES for indentation, not tabs (opposite gotcha from the earlier Python tabs/spaces
+  issue — worth remembering these rules differ by language/file type)
+- Misspelled `requirements.txt` while staging → since it wasn't committed yet, fixed by renaming the
+  file on disk (`mv`) then re-adding both the new correct file AND the deletion of the old misspelled
+  one (`git add` the missing file too, so Git registers it's really gone)
+
+**Key lesson:** CI failures are read the same way as any other error — actual output over assumptions.
+The Actions tab shows a step-by-step breakdown (checkmark/red-X/skipped-circle icons) — skipped steps
+after a failure are a big clue that an EARLIER step is the real problem, not necessarily the one that
+shows red.
 
 
-
-
-- [ ] **Week 5 — CI setup:** GitHub Actions to auto-run both test suites on push
 - [ ] **Week 6 — README + interview prep:** Clean README (what/why/how to run), 90-second verbal walkthrough
 
 ---
